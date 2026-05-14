@@ -9,38 +9,139 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppClassesRouteImport } from './routes/_app/classes'
+import { Route as AppClassesClassIdRouteImport } from './routes/_app/classes.$classId'
+import { Route as AppAssignmentsAssignmentIdTakeRouteImport } from './routes/_app/assignments.$assignmentId.take'
+import { Route as AppAssignmentsAssignmentIdEditRouteImport } from './routes/_app/assignments.$assignmentId.edit'
 
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppClassesRoute = AppClassesRouteImport.update({
+  id: '/classes',
+  path: '/classes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppClassesClassIdRoute = AppClassesClassIdRouteImport.update({
+  id: '/$classId',
+  path: '/$classId',
+  getParentRoute: () => AppClassesRoute,
+} as any)
+const AppAssignmentsAssignmentIdTakeRoute =
+  AppAssignmentsAssignmentIdTakeRouteImport.update({
+    id: '/assignments/$assignmentId/take',
+    path: '/assignments/$assignmentId/take',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppAssignmentsAssignmentIdEditRoute =
+  AppAssignmentsAssignmentIdEditRouteImport.update({
+    id: '/assignments/$assignmentId/edit',
+    path: '/assignments/$assignmentId/edit',
+    getParentRoute: () => AppRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/classes': typeof AppClassesRouteWithChildren
+  '/dashboard': typeof AppDashboardRoute
+  '/classes/$classId': typeof AppClassesClassIdRoute
+  '/assignments/$assignmentId/edit': typeof AppAssignmentsAssignmentIdEditRoute
+  '/assignments/$assignmentId/take': typeof AppAssignmentsAssignmentIdTakeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/classes': typeof AppClassesRouteWithChildren
+  '/dashboard': typeof AppDashboardRoute
+  '/classes/$classId': typeof AppClassesClassIdRoute
+  '/assignments/$assignmentId/edit': typeof AppAssignmentsAssignmentIdEditRoute
+  '/assignments/$assignmentId/take': typeof AppAssignmentsAssignmentIdTakeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_app/classes': typeof AppClassesRouteWithChildren
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/classes/$classId': typeof AppClassesClassIdRoute
+  '/_app/assignments/$assignmentId/edit': typeof AppAssignmentsAssignmentIdEditRoute
+  '/_app/assignments/$assignmentId/take': typeof AppAssignmentsAssignmentIdTakeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/classes'
+    | '/dashboard'
+    | '/classes/$classId'
+    | '/assignments/$assignmentId/edit'
+    | '/assignments/$assignmentId/take'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/classes'
+    | '/dashboard'
+    | '/classes/$classId'
+    | '/assignments/$assignmentId/edit'
+    | '/assignments/$assignmentId/take'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/auth'
+    | '/_app/classes'
+    | '/_app/dashboard'
+    | '/_app/classes/$classId'
+    | '/_app/assignments/$assignmentId/edit'
+    | '/_app/assignments/$assignmentId/take'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +149,77 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/classes': {
+      id: '/_app/classes'
+      path: '/classes'
+      fullPath: '/classes'
+      preLoaderRoute: typeof AppClassesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/classes/$classId': {
+      id: '/_app/classes/$classId'
+      path: '/$classId'
+      fullPath: '/classes/$classId'
+      preLoaderRoute: typeof AppClassesClassIdRouteImport
+      parentRoute: typeof AppClassesRoute
+    }
+    '/_app/assignments/$assignmentId/take': {
+      id: '/_app/assignments/$assignmentId/take'
+      path: '/assignments/$assignmentId/take'
+      fullPath: '/assignments/$assignmentId/take'
+      preLoaderRoute: typeof AppAssignmentsAssignmentIdTakeRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/assignments/$assignmentId/edit': {
+      id: '/_app/assignments/$assignmentId/edit'
+      path: '/assignments/$assignmentId/edit'
+      fullPath: '/assignments/$assignmentId/edit'
+      preLoaderRoute: typeof AppAssignmentsAssignmentIdEditRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppClassesRouteChildren {
+  AppClassesClassIdRoute: typeof AppClassesClassIdRoute
+}
+
+const AppClassesRouteChildren: AppClassesRouteChildren = {
+  AppClassesClassIdRoute: AppClassesClassIdRoute,
+}
+
+const AppClassesRouteWithChildren = AppClassesRoute._addFileChildren(
+  AppClassesRouteChildren,
+)
+
+interface AppRouteChildren {
+  AppClassesRoute: typeof AppClassesRouteWithChildren
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppAssignmentsAssignmentIdEditRoute: typeof AppAssignmentsAssignmentIdEditRoute
+  AppAssignmentsAssignmentIdTakeRoute: typeof AppAssignmentsAssignmentIdTakeRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppClassesRoute: AppClassesRouteWithChildren,
+  AppDashboardRoute: AppDashboardRoute,
+  AppAssignmentsAssignmentIdEditRoute: AppAssignmentsAssignmentIdEditRoute,
+  AppAssignmentsAssignmentIdTakeRoute: AppAssignmentsAssignmentIdTakeRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
