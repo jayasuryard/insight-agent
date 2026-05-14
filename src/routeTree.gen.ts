@@ -15,6 +15,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppClassesRouteImport } from './routes/_app/classes'
 import { Route as AppClassesClassIdRouteImport } from './routes/_app/classes.$classId'
+import { Route as AppAssignmentsAssignmentIdTakeRouteImport } from './routes/_app/assignments.$assignmentId.take'
+import { Route as AppAssignmentsAssignmentIdEditRouteImport } from './routes/_app/assignments.$assignmentId.edit'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -45,6 +47,18 @@ const AppClassesClassIdRoute = AppClassesClassIdRouteImport.update({
   path: '/$classId',
   getParentRoute: () => AppClassesRoute,
 } as any)
+const AppAssignmentsAssignmentIdTakeRoute =
+  AppAssignmentsAssignmentIdTakeRouteImport.update({
+    id: '/assignments/$assignmentId/take',
+    path: '/assignments/$assignmentId/take',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppAssignmentsAssignmentIdEditRoute =
+  AppAssignmentsAssignmentIdEditRouteImport.update({
+    id: '/assignments/$assignmentId/edit',
+    path: '/assignments/$assignmentId/edit',
+    getParentRoute: () => AppRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -52,6 +66,8 @@ export interface FileRoutesByFullPath {
   '/classes': typeof AppClassesRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
   '/classes/$classId': typeof AppClassesClassIdRoute
+  '/assignments/$assignmentId/edit': typeof AppAssignmentsAssignmentIdEditRoute
+  '/assignments/$assignmentId/take': typeof AppAssignmentsAssignmentIdTakeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -59,6 +75,8 @@ export interface FileRoutesByTo {
   '/classes': typeof AppClassesRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
   '/classes/$classId': typeof AppClassesClassIdRoute
+  '/assignments/$assignmentId/edit': typeof AppAssignmentsAssignmentIdEditRoute
+  '/assignments/$assignmentId/take': typeof AppAssignmentsAssignmentIdTakeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -68,12 +86,28 @@ export interface FileRoutesById {
   '/_app/classes': typeof AppClassesRouteWithChildren
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/classes/$classId': typeof AppClassesClassIdRoute
+  '/_app/assignments/$assignmentId/edit': typeof AppAssignmentsAssignmentIdEditRoute
+  '/_app/assignments/$assignmentId/take': typeof AppAssignmentsAssignmentIdTakeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/classes' | '/dashboard' | '/classes/$classId'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/classes'
+    | '/dashboard'
+    | '/classes/$classId'
+    | '/assignments/$assignmentId/edit'
+    | '/assignments/$assignmentId/take'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/classes' | '/dashboard' | '/classes/$classId'
+  to:
+    | '/'
+    | '/auth'
+    | '/classes'
+    | '/dashboard'
+    | '/classes/$classId'
+    | '/assignments/$assignmentId/edit'
+    | '/assignments/$assignmentId/take'
   id:
     | '__root__'
     | '/'
@@ -82,6 +116,8 @@ export interface FileRouteTypes {
     | '/_app/classes'
     | '/_app/dashboard'
     | '/_app/classes/$classId'
+    | '/_app/assignments/$assignmentId/edit'
+    | '/_app/assignments/$assignmentId/take'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -134,6 +170,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClassesClassIdRouteImport
       parentRoute: typeof AppClassesRoute
     }
+    '/_app/assignments/$assignmentId/take': {
+      id: '/_app/assignments/$assignmentId/take'
+      path: '/assignments/$assignmentId/take'
+      fullPath: '/assignments/$assignmentId/take'
+      preLoaderRoute: typeof AppAssignmentsAssignmentIdTakeRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/assignments/$assignmentId/edit': {
+      id: '/_app/assignments/$assignmentId/edit'
+      path: '/assignments/$assignmentId/edit'
+      fullPath: '/assignments/$assignmentId/edit'
+      preLoaderRoute: typeof AppAssignmentsAssignmentIdEditRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -152,11 +202,15 @@ const AppClassesRouteWithChildren = AppClassesRoute._addFileChildren(
 interface AppRouteChildren {
   AppClassesRoute: typeof AppClassesRouteWithChildren
   AppDashboardRoute: typeof AppDashboardRoute
+  AppAssignmentsAssignmentIdEditRoute: typeof AppAssignmentsAssignmentIdEditRoute
+  AppAssignmentsAssignmentIdTakeRoute: typeof AppAssignmentsAssignmentIdTakeRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppClassesRoute: AppClassesRouteWithChildren,
   AppDashboardRoute: AppDashboardRoute,
+  AppAssignmentsAssignmentIdEditRoute: AppAssignmentsAssignmentIdEditRoute,
+  AppAssignmentsAssignmentIdTakeRoute: AppAssignmentsAssignmentIdTakeRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
