@@ -13,6 +13,8 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppClassesRouteImport } from './routes/_app/classes'
+import { Route as AppClassesClassIdRouteImport } from './routes/_app/classes.$classId'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -33,30 +35,53 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppClassesRoute = AppClassesRouteImport.update({
+  id: '/classes',
+  path: '/classes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppClassesClassIdRoute = AppClassesClassIdRouteImport.update({
+  id: '/$classId',
+  path: '/$classId',
+  getParentRoute: () => AppClassesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/classes': typeof AppClassesRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
+  '/classes/$classId': typeof AppClassesClassIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/classes': typeof AppClassesRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
+  '/classes/$classId': typeof AppClassesClassIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_app/classes': typeof AppClassesRouteWithChildren
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/classes/$classId': typeof AppClassesClassIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/dashboard'
+  fullPaths: '/' | '/auth' | '/classes' | '/dashboard' | '/classes/$classId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/dashboard'
-  id: '__root__' | '/' | '/_app' | '/auth' | '/_app/dashboard'
+  to: '/' | '/auth' | '/classes' | '/dashboard' | '/classes/$classId'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/auth'
+    | '/_app/classes'
+    | '/_app/dashboard'
+    | '/_app/classes/$classId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -95,14 +120,42 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/classes': {
+      id: '/_app/classes'
+      path: '/classes'
+      fullPath: '/classes'
+      preLoaderRoute: typeof AppClassesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/classes/$classId': {
+      id: '/_app/classes/$classId'
+      path: '/$classId'
+      fullPath: '/classes/$classId'
+      preLoaderRoute: typeof AppClassesClassIdRouteImport
+      parentRoute: typeof AppClassesRoute
+    }
   }
 }
 
+interface AppClassesRouteChildren {
+  AppClassesClassIdRoute: typeof AppClassesClassIdRoute
+}
+
+const AppClassesRouteChildren: AppClassesRouteChildren = {
+  AppClassesClassIdRoute: AppClassesClassIdRoute,
+}
+
+const AppClassesRouteWithChildren = AppClassesRoute._addFileChildren(
+  AppClassesRouteChildren,
+)
+
 interface AppRouteChildren {
+  AppClassesRoute: typeof AppClassesRouteWithChildren
   AppDashboardRoute: typeof AppDashboardRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppClassesRoute: AppClassesRouteWithChildren,
   AppDashboardRoute: AppDashboardRoute,
 }
 
@@ -116,3 +169,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
