@@ -56,23 +56,23 @@ function Dashboard() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {role === "teacher" && stats && (
           <>
-            <StatCard icon={BookOpen} label="Classes" value={stats.classes} />
-            <StatCard icon={ClipboardList} label="Assignments" value={stats.assignments} />
-            <StatCard icon={Sparkles} label="Submissions" value={stats.submissions} />
+            <StatCard icon={BookOpen} label="Classes" value={(stats as any).classes ?? 0} />
+            <StatCard icon={ClipboardList} label="Assignments" value={(stats as any).assignments ?? 0} />
+            <StatCard icon={Sparkles} label="Submissions" value={(stats as any).submissions ?? 0} />
           </>
         )}
         {role === "student" && stats && (
           <>
-            <StatCard icon={BookOpen} label="Enrolled classes" value={stats.classes} />
-            <StatCard icon={ClipboardList} label="Completed" value={stats.completed} />
-            <StatCard icon={Trophy} label="Average score" value={`${stats.avg}%`} />
+            <StatCard icon={BookOpen} label="Enrolled classes" value={(stats as any).classes ?? 0} />
+            <StatCard icon={ClipboardList} label="Completed" value={(stats as any).completed ?? 0} />
+            <StatCard icon={Trophy} label="Average score" value={`${(stats as any).avg ?? 0}%`} />
           </>
         )}
         {role === "admin" && stats && (
           <>
-            <StatCard icon={Sparkles} label="Users" value={stats.users} />
-            <StatCard icon={BookOpen} label="Classes" value={stats.classes} />
-            <StatCard icon={ClipboardList} label="Assignments" value={stats.assignments} />
+            <StatCard icon={Sparkles} label="Users" value={(stats as any).users ?? 0} />
+            <StatCard icon={BookOpen} label="Classes" value={(stats as any).classes ?? 0} />
+            <StatCard icon={ClipboardList} label="Assignments" value={(stats as any).assignments ?? 0} />
           </>
         )}
       </div>
