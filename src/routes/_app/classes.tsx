@@ -33,9 +33,6 @@ function ClassesPage() {
   const childMatches = useChildMatches();
   const joinFn = useServerFn(joinClassByCode);
 
-  // When viewing a class detail, render it instead of the list
-  if (childMatches.length > 0) return <Outlet />;
-
   const { data: classes, isLoading } = useQuery({
     queryKey: ["classes", user?.id],
     enabled: !!user,
@@ -56,6 +53,9 @@ function ClassesPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [editId, setEditId] = useState("");
   const [editName, setEditName] = useState("");
+
+  // When viewing a class detail, render it instead of the list (must be after all hooks)
+  if (childMatches.length > 0) return <Outlet />;
 
   const createClass = async () => {
     if (!name.trim() || !user) return;

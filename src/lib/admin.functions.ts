@@ -156,11 +156,25 @@ export const adminGetSubmissions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireAdmin(context.userId);
-    const { data, error } = await supabaseAdmin
+    const { data: subs, error } = await supabaseAdmin
       .from("submissions")
-      .select("id, total_score, max_score, status, submitted_at, overall_feedback, assignments:assignment_id(id, title), profiles:student_id(full_name, email)")
+      .select("id, student_id, total_score, max_score, status, submitted_at, overall_feedback, assignments:assignment_id(id, title)")
       .order("submitted_at", { ascending: false })
       .limit(100);
     if (error) throw new Error(error.message);
-    return { submissions: data ?? [] };
+
+    // Fetch profiles separately (student_id → auth.users, no direct FK to profiles)
+    const studentIds = [...new Set((subs ?? []).map((s) => s.student_id))];
+    const profiles =
+      studentIds.length
+        ? (await supabaseAdmin.from("profiles").select("id, full_name, email").in("id", studentIds)).data ?? []
+        : [];
+    const profileMap = new Map(profiles.map((p) => [p.id, p]));
+
+    const submissions = (subs ?? []).map((s) => ({
+      ...s,
+      profiles: profileMap.get(s.student_id) ?? null,
+    }));
+
+    return { submissions };
   });

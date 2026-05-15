@@ -1,10 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, ClipboardList, Plus, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
+import { createAssignment as createAssignmentFn } from "@/lib/teacher.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,9 +24,11 @@ function ClassDetail() {
   const { user, role } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const createAssignmentSvr = useServerFn(createAssignmentFn);
 
   const { data: cls } = useQuery({
     queryKey: ["class", classId],
+    enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase.from("classes").select("*").eq("id", classId).single();
       if (error) throw error;
@@ -34,6 +38,7 @@ function ClassDetail() {
 
   const { data: assignments } = useQuery({
     queryKey: ["assignments", classId],
+    enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("assignments")
@@ -47,12 +52,21 @@ function ClassDetail() {
 
   const { data: members } = useQuery({
     queryKey: ["class-members", classId],
+    enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase
+      // Fetch members + profiles separately (student_id → auth.users, no direct FK to profiles)
+      const { data: memberRows } = await supabase
         .from("class_members")
-        .select("student_id, profiles:student_id(full_name, email)")
+        .select("student_id")
         .eq("class_id", classId);
-      return data ?? [];
+      if (!memberRows?.length) return [];
+      const ids = memberRows.map((m) => m.student_id);
+      const { data: profileRows } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", ids);
+      const profileMap = new Map((profileRows ?? []).map((p) => [p.id, p]));
+      return memberRows.map((m) => ({ student_id: m.student_id, profiles: profileMap.get(m.student_id) ?? null }));
     },
   });
 
@@ -64,23 +78,23 @@ function ClassDetail() {
   const [dueAt, setDueAt] = useState("");
 
   const createAssignment = async () => {
-    if (!title.trim() || !user || !cls) return;
-    const { data, error } = await supabase
-      .from("assignments")
-      .insert({
-        class_id: cls.id,
-        teacher_id: user.id,
-        title: title.trim(),
-        description: description.trim() || null,
-        due_at: dueAt || null,
-      })
-      .select()
-      .single();
-    if (error) return toast.error(error.message);
-    toast.success("Assignment created");
-    setTitle(""); setDescription(""); setDueAt(""); setOpen(false);
-    qc.invalidateQueries({ queryKey: ["assignments", classId] });
-    navigate({ to: "/assignments/$assignmentId/edit", params: { assignmentId: data.id } });
+    if (!title.trim() || !cls) return;
+    try {
+      const res = await createAssignmentSvr({
+        data: {
+          classId: cls.id,
+          title: title.trim(),
+          description: description.trim() || undefined,
+          dueAt: dueAt || undefined,
+        },
+      });
+      toast.success("Assignment created");
+      setTitle(""); setDescription(""); setDueAt(""); setOpen(false);
+      qc.invalidateQueries({ queryKey: ["assignments", classId] });
+      navigate({ to: "/assignments/$assignmentId/edit", params: { assignmentId: res.assignmentId } });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to create assignment");
+    }
   };
 
   return (

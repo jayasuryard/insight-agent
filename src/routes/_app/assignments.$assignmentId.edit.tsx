@@ -21,6 +21,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { generateQuestions, insertGeneratedQuestions, getAssignmentAnalytics } from "@/lib/teacher.functions";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_app/assignments/$assignmentId/edit")({
   component: EditAssignment,
@@ -30,11 +31,13 @@ type QType = "mcq" | "text";
 
 function EditAssignment() {
   const { assignmentId } = Route.useParams();
+  const { user } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
 
   const { data: assignment } = useQuery({
     queryKey: ["assignment", assignmentId],
+    enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase.from("assignments").select("*").eq("id", assignmentId).single();
       if (error) throw error;
@@ -44,6 +47,7 @@ function EditAssignment() {
 
   const { data: questions } = useQuery({
     queryKey: ["questions", assignmentId],
+    enabled: !!user,
     queryFn: async () => {
       const { data } = await supabase.from("questions").select("*").eq("assignment_id", assignmentId).order("position");
       return data ?? [];
@@ -52,13 +56,19 @@ function EditAssignment() {
 
   const { data: submissions } = useQuery({
     queryKey: ["submissions", assignmentId],
+    enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase
+      // Fetch submissions then profiles separately (student_id → auth.users, no direct FK to profiles)
+      const { data: subRows } = await supabase
         .from("submissions")
-        .select("id, student_id, total_score, max_score, status, submitted_at, profiles:student_id(full_name, email)")
+        .select("id, student_id, total_score, max_score, status, submitted_at")
         .eq("assignment_id", assignmentId)
         .order("submitted_at", { ascending: false });
-      return data ?? [];
+      if (!subRows?.length) return [];
+      const ids = subRows.map((s) => s.student_id);
+      const { data: profileRows } = await supabase.from("profiles").select("id, full_name, email").in("id", ids);
+      const profileMap = new Map((profileRows ?? []).map((p) => [p.id, p]));
+      return subRows.map((s) => ({ ...s, profiles: profileMap.get(s.student_id) ?? null }));
     },
   });
 

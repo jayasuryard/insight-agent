@@ -7,6 +7,7 @@ import { ArrowLeft, CheckCircle2, Sparkles, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { getAssignmentForStudent, submitAssignment } from "@/lib/assignments.functions";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_app/assignments/$assignmentId/take")({
   component: TakeAssignment,
@@ -14,12 +15,14 @@ export const Route = createFileRoute("/_app/assignments/$assignmentId/take")({
 
 function TakeAssignment() {
   const { assignmentId } = Route.useParams();
+  const { user } = useAuth();
   const fetchFn = useServerFn(getAssignmentForStudent);
   const submitFn = useServerFn(submitAssignment);
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ["take", assignmentId],
+    enabled: !!user,
     queryFn: () => fetchFn({ data: { assignmentId } }),
   });
 

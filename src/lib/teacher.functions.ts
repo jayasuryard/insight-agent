@@ -4,6 +4,48 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getGroqClient, GROQ_MODEL } from "@/lib/groq";
 
+/** Create an assignment — runs server-side to bypass RLS for admins. */
+export const createAssignment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      classId: z.string().uuid(),
+      title: z.string().min(1).max(300),
+      description: z.string().max(2000).optional(),
+      dueAt: z.string().optional(),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+
+    // Verify user owns the class or is admin
+    const { data: cls, error: ce } = await supabaseAdmin
+      .from("classes").select("id, teacher_id").eq("id", data.classId).single();
+    if (ce || !cls) throw new Error("Class not found");
+    if (cls.teacher_id !== userId) {
+      const { data: r } = await supabaseAdmin
+        .from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
+      if (!r) throw new Error("Forbidden");
+    }
+
+    // Use the class teacher as owner (important for admin creating on behalf of teacher)
+    const teacherId = cls.teacher_id;
+
+    const { data: assignment, error } = await supabaseAdmin
+      .from("assignments")
+      .insert({
+        class_id: data.classId,
+        teacher_id: teacherId,
+        title: data.title.trim(),
+        description: data.description?.trim() || null,
+        due_at: data.dueAt || null,
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return { assignmentId: assignment.id };
+  });
+
 async function ensureTeacherOwnsAssignment(userId: string, assignmentId: string) {
   const { data, error } = await supabaseAdmin
     .from("assignments")
