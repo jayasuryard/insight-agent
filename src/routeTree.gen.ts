@@ -12,8 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppResultsRouteImport } from './routes/_app/results'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppClassesRouteImport } from './routes/_app/classes'
+import { Route as AppAdminRouteImport } from './routes/_app/admin'
+import { Route as AppSubmissionsSubmissionIdRouteImport } from './routes/_app/submissions.$submissionId'
 import { Route as AppClassesClassIdRouteImport } from './routes/_app/classes.$classId'
 import { Route as AppAssignmentsAssignmentIdTakeRouteImport } from './routes/_app/assignments.$assignmentId.take'
 import { Route as AppAssignmentsAssignmentIdEditRouteImport } from './routes/_app/assignments.$assignmentId.edit'
@@ -32,6 +35,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppResultsRoute = AppResultsRouteImport.update({
+  id: '/results',
+  path: '/results',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -42,6 +50,17 @@ const AppClassesRoute = AppClassesRouteImport.update({
   path: '/classes',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminRoute = AppAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSubmissionsSubmissionIdRoute =
+  AppSubmissionsSubmissionIdRouteImport.update({
+    id: '/submissions/$submissionId',
+    path: '/submissions/$submissionId',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppClassesClassIdRoute = AppClassesClassIdRouteImport.update({
   id: '/$classId',
   path: '/$classId',
@@ -63,18 +82,24 @@ const AppAssignmentsAssignmentIdEditRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/admin': typeof AppAdminRoute
   '/classes': typeof AppClassesRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
+  '/results': typeof AppResultsRoute
   '/classes/$classId': typeof AppClassesClassIdRoute
+  '/submissions/$submissionId': typeof AppSubmissionsSubmissionIdRoute
   '/assignments/$assignmentId/edit': typeof AppAssignmentsAssignmentIdEditRoute
   '/assignments/$assignmentId/take': typeof AppAssignmentsAssignmentIdTakeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/admin': typeof AppAdminRoute
   '/classes': typeof AppClassesRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
+  '/results': typeof AppResultsRoute
   '/classes/$classId': typeof AppClassesClassIdRoute
+  '/submissions/$submissionId': typeof AppSubmissionsSubmissionIdRoute
   '/assignments/$assignmentId/edit': typeof AppAssignmentsAssignmentIdEditRoute
   '/assignments/$assignmentId/take': typeof AppAssignmentsAssignmentIdTakeRoute
 }
@@ -83,9 +108,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_app/admin': typeof AppAdminRoute
   '/_app/classes': typeof AppClassesRouteWithChildren
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/results': typeof AppResultsRoute
   '/_app/classes/$classId': typeof AppClassesClassIdRoute
+  '/_app/submissions/$submissionId': typeof AppSubmissionsSubmissionIdRoute
   '/_app/assignments/$assignmentId/edit': typeof AppAssignmentsAssignmentIdEditRoute
   '/_app/assignments/$assignmentId/take': typeof AppAssignmentsAssignmentIdTakeRoute
 }
@@ -94,18 +122,24 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/admin'
     | '/classes'
     | '/dashboard'
+    | '/results'
     | '/classes/$classId'
+    | '/submissions/$submissionId'
     | '/assignments/$assignmentId/edit'
     | '/assignments/$assignmentId/take'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
+    | '/admin'
     | '/classes'
     | '/dashboard'
+    | '/results'
     | '/classes/$classId'
+    | '/submissions/$submissionId'
     | '/assignments/$assignmentId/edit'
     | '/assignments/$assignmentId/take'
   id:
@@ -113,9 +147,12 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/auth'
+    | '/_app/admin'
     | '/_app/classes'
     | '/_app/dashboard'
+    | '/_app/results'
     | '/_app/classes/$classId'
+    | '/_app/submissions/$submissionId'
     | '/_app/assignments/$assignmentId/edit'
     | '/_app/assignments/$assignmentId/take'
   fileRoutesById: FileRoutesById
@@ -149,6 +186,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/results': {
+      id: '/_app/results'
+      path: '/results'
+      fullPath: '/results'
+      preLoaderRoute: typeof AppResultsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
@@ -161,6 +205,20 @@ declare module '@tanstack/react-router' {
       path: '/classes'
       fullPath: '/classes'
       preLoaderRoute: typeof AppClassesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin': {
+      id: '/_app/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AppAdminRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/submissions/$submissionId': {
+      id: '/_app/submissions/$submissionId'
+      path: '/submissions/$submissionId'
+      fullPath: '/submissions/$submissionId'
+      preLoaderRoute: typeof AppSubmissionsSubmissionIdRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/classes/$classId': {
@@ -200,15 +258,21 @@ const AppClassesRouteWithChildren = AppClassesRoute._addFileChildren(
 )
 
 interface AppRouteChildren {
+  AppAdminRoute: typeof AppAdminRoute
   AppClassesRoute: typeof AppClassesRouteWithChildren
   AppDashboardRoute: typeof AppDashboardRoute
+  AppResultsRoute: typeof AppResultsRoute
+  AppSubmissionsSubmissionIdRoute: typeof AppSubmissionsSubmissionIdRoute
   AppAssignmentsAssignmentIdEditRoute: typeof AppAssignmentsAssignmentIdEditRoute
   AppAssignmentsAssignmentIdTakeRoute: typeof AppAssignmentsAssignmentIdTakeRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAdminRoute: AppAdminRoute,
   AppClassesRoute: AppClassesRouteWithChildren,
   AppDashboardRoute: AppDashboardRoute,
+  AppResultsRoute: AppResultsRoute,
+  AppSubmissionsSubmissionIdRoute: AppSubmissionsSubmissionIdRoute,
   AppAssignmentsAssignmentIdEditRoute: AppAssignmentsAssignmentIdEditRoute,
   AppAssignmentsAssignmentIdTakeRoute: AppAssignmentsAssignmentIdTakeRoute,
 }
@@ -223,3 +287,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
