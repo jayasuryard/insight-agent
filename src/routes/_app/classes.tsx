@@ -1,10 +1,12 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useChildMatches } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import { BookOpen, Plus, KeyRound, Trash2, Pencil } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
+import { joinClassByCode } from "@/lib/student.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +30,11 @@ function generateCode() {
 function ClassesPage() {
   const { user, role } = useAuth();
   const qc = useQueryClient();
+  const childMatches = useChildMatches();
+  const joinFn = useServerFn(joinClassByCode);
+
+  // When viewing a class detail, render it instead of the list
+  if (childMatches.length > 0) return <Outlet />;
 
   const { data: classes, isLoading } = useQuery({
     queryKey: ["classes", user?.id],
@@ -65,22 +72,16 @@ function ClassesPage() {
   };
 
   const joinClass = async () => {
-    if (!code.trim() || !user) return;
-    const { data: cls, error } = await supabase
-      .from("classes")
-      .select("id")
-      .eq("code", code.trim().toUpperCase())
-      .maybeSingle();
-    if (error || !cls) return toast.error("Class code not found");
-    const { error: je } = await supabase.from("class_members").insert({
-      class_id: cls.id,
-      student_id: user.id,
-    });
-    if (je) return toast.error(je.message.includes("duplicate") ? "Already enrolled" : je.message);
-    toast.success("Joined class");
-    setCode("");
-    setJoinOpen(false);
-    qc.invalidateQueries({ queryKey: ["classes"] });
+    if (!code.trim()) return;
+    try {
+      const res = await joinFn({ data: { code: code.trim() } });
+      toast.success(`Joined "${res.className}"`);
+      setCode("");
+      setJoinOpen(false);
+      qc.invalidateQueries({ queryKey: ["classes"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to join class");
+    }
   };
 
   const deleteClass = async (classId: string) => {

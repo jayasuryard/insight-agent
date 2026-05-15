@@ -56,7 +56,7 @@ function ClassDetail() {
     },
   });
 
-  const isTeacher = !!cls && cls.teacher_id === user?.id;
+  const isTeacher = !!cls && (cls.teacher_id === user?.id || role === "admin");
 
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
