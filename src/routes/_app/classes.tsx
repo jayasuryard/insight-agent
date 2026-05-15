@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { BookOpen, Plus, KeyRound } from "lucide-react";
+import { BookOpen, Plus, KeyRound, Trash2, Pencil } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,11 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_app/classes")({
   component: ClassesPage,
@@ -41,6 +46,9 @@ function ClassesPage() {
   const [joinOpen, setJoinOpen] = useState(false);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
+  const [editId, setEditId] = useState("");
+  const [editName, setEditName] = useState("");
 
   const createClass = async () => {
     if (!name.trim() || !user) return;
@@ -75,6 +83,22 @@ function ClassesPage() {
     qc.invalidateQueries({ queryKey: ["classes"] });
   };
 
+  const deleteClass = async (classId: string) => {
+    const { error } = await supabase.from("classes").delete().eq("id", classId);
+    if (error) return toast.error(error.message);
+    toast.success("Class deleted");
+    qc.invalidateQueries({ queryKey: ["classes"] });
+  };
+
+  const renameClass = async () => {
+    if (!editName.trim() || !editId) return;
+    const { error } = await supabase.from("classes").update({ name: editName.trim() }).eq("id", editId);
+    if (error) return toast.error(error.message);
+    toast.success("Class renamed");
+    setEditOpen(false);
+    qc.invalidateQueries({ queryKey: ["classes"] });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-4">
@@ -102,7 +126,7 @@ function ClassesPage() {
               </DialogContent>
             </Dialog>
           )}
-          {role === "teacher" && (
+          {(role === "teacher" || role === "admin") && (
             <Dialog open={createOpen} onOpenChange={setCreateOpen}>
               <DialogTrigger asChild>
                 <Button><Plus className="mr-2 h-4 w-4" /> New class</Button>
@@ -135,24 +159,62 @@ function ClassesPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {classes.map((c) => (
-            <Link
-              key={c.id}
-              to="/classes/$classId"
-              params={{ classId: c.id }}
-              className="group rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-soft)] transition hover:border-primary/40 hover:shadow-[var(--shadow-warm)]"
-            >
-              <div className="flex items-start justify-between">
-                <BookOpen className="h-6 w-6 text-primary" />
-                <code className="rounded-md bg-secondary px-2 py-1 font-mono text-xs">{c.code}</code>
-              </div>
-              <h3 className="mt-4 font-display text-lg font-semibold group-hover:text-primary">{c.name}</h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Created {new Date(c.created_at).toLocaleDateString()}
-              </p>
-            </Link>
+            <div key={c.id} className="group relative rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-soft)] transition hover:border-primary/40 hover:shadow-[var(--shadow-warm)]">
+              <Link
+                to="/classes/$classId"
+                params={{ classId: c.id }}
+                className="block"
+              >
+                <div className="flex items-start justify-between">
+                  <BookOpen className="h-6 w-6 text-primary" />
+                  <code className="rounded-md bg-secondary px-2 py-1 font-mono text-xs">{c.code}</code>
+                </div>
+                <h3 className="mt-4 font-display text-lg font-semibold group-hover:text-primary">{c.name}</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Created {new Date(c.created_at).toLocaleDateString()}
+                </p>
+              </Link>
+              {(role === "teacher" && c.teacher_id === user?.id) || role === "admin" ? (
+                <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={(e) => { e.preventDefault(); setEditId(c.id); setEditName(c.name); setEditOpen(true); }}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={(e) => e.preventDefault()}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete class?</AlertDialogTitle>
+                        <AlertDialogDescription>This will permanently delete "{c.name}". This cannot be undone.</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => deleteClass(c.id)}>Delete</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              ) : null}
+            </div>
           ))}
         </div>
       )}
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Rename class</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <Label>New name</Label>
+            <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button onClick={renameClass}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

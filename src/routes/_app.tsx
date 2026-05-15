@@ -30,7 +30,7 @@ function AppLayout() {
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { to: "/classes", label: "Classes", icon: BookOpen },
     ...(role === "student" ? [{ to: "/results", label: "Results", icon: Trophy }] as const : []),
-    ...(role === "admin" ? [{ to: "/admin", label: "Admin", icon: Shield }] as const : []),
+    ...(role === "admin" ? [{ to: "/results", label: "Results", icon: Trophy }, { to: "/admin", label: "Admin", icon: Shield }] as const : []),
   ] as const;
 
   return (

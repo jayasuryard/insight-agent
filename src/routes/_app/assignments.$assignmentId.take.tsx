@@ -61,6 +61,7 @@ function TakeAssignment() {
 
   if (isLoading || !data) return <p className="text-sm text-muted-foreground">Loading…</p>;
   const { assignment, questions, submission } = data;
+  const isPastDue = assignment.due_at ? new Date(assignment.due_at) < new Date() : false;
 
   return (
     <div className="space-y-6">
@@ -71,6 +72,12 @@ function TakeAssignment() {
       <div>
         <h1 className="font-display text-3xl font-semibold">{assignment.title}</h1>
         {assignment.description && <p className="mt-1 text-sm text-muted-foreground">{assignment.description}</p>}
+        {assignment.due_at && (
+          <p className={`mt-1 text-sm ${isPastDue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+            Due: {new Date(assignment.due_at).toLocaleString()}
+            {isPastDue && !graded && " — Submission closed"}
+          </p>
+        )}
       </div>
 
       {graded && submission && (
@@ -149,8 +156,8 @@ function TakeAssignment() {
       </div>
 
       {!graded && (
-        <Button size="lg" className="w-full" onClick={submit} disabled={submitting || !questions.length}>
-          {submitting ? "Grading with AI…" : "Submit for AI evaluation"}
+        <Button size="lg" className="w-full" onClick={submit} disabled={submitting || !questions.length || isPastDue}>
+          {isPastDue ? "Submission closed (past due)" : submitting ? "Grading with AI…" : "Submit for AI evaluation"}
         </Button>
       )}
     </div>

@@ -61,17 +61,24 @@ function ClassDetail() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [dueAt, setDueAt] = useState("");
 
   const createAssignment = async () => {
     if (!title.trim() || !user || !cls) return;
     const { data, error } = await supabase
       .from("assignments")
-      .insert({ class_id: cls.id, teacher_id: user.id, title: title.trim(), description: description.trim() || null })
+      .insert({
+        class_id: cls.id,
+        teacher_id: user.id,
+        title: title.trim(),
+        description: description.trim() || null,
+        due_at: dueAt || null,
+      })
       .select()
       .single();
     if (error) return toast.error(error.message);
     toast.success("Assignment created");
-    setTitle(""); setDescription(""); setOpen(false);
+    setTitle(""); setDescription(""); setDueAt(""); setOpen(false);
     qc.invalidateQueries({ queryKey: ["assignments", classId] });
     navigate({ to: "/assignments/$assignmentId/edit", params: { assignmentId: data.id } });
   };
@@ -105,6 +112,10 @@ function ClassDetail() {
                   <Label htmlFor="desc">Description (optional)</Label>
                   <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
                 </div>
+                <div>
+                  <Label htmlFor="due">Due date (optional)</Label>
+                  <Input id="due" type="datetime-local" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
+                </div>
               </div>
               <DialogFooter>
                 <Button onClick={createAssignment}>Create & add questions</Button>
@@ -134,6 +145,12 @@ function ClassDetail() {
                   <div>
                     <h3 className="font-display text-base font-semibold">{a.title}</h3>
                     {a.description && <p className="mt-1 text-sm text-muted-foreground">{a.description}</p>}
+                    {a.due_at && (
+                      <p className={`mt-1 text-xs ${new Date(a.due_at) < new Date() ? "text-destructive" : "text-muted-foreground"}`}>
+                        Due: {new Date(a.due_at).toLocaleString()}
+                        {new Date(a.due_at) < new Date() && " (overdue)"}
+                      </p>
+                    )}
                   </div>
                   <span className="text-xs text-muted-foreground">{new Date(a.created_at).toLocaleDateString()}</span>
                 </div>

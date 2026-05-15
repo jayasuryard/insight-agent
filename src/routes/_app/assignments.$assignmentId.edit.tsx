@@ -1,9 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Trash2, Sparkles, Wand2, BarChart3 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Sparkles, Wand2, BarChart3, Pencil, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,11 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { generateQuestions, insertGeneratedQuestions, getAssignmentAnalytics } from "@/lib/teacher.functions";
 
 export const Route = createFileRoute("/_app/assignments/$assignmentId/edit")({
@@ -26,6 +31,7 @@ type QType = "mcq" | "text";
 function EditAssignment() {
   const { assignmentId } = Route.useParams();
   const qc = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: assignment } = useQuery({
     queryKey: ["assignment", assignmentId],
@@ -101,6 +107,38 @@ function EditAssignment() {
     qc.invalidateQueries({ queryKey: ["questions", assignmentId] });
   };
 
+  const deleteAssignment = async () => {
+    // Delete answers → submissions → questions → assignment
+    const { data: subs } = await supabase.from("submissions").select("id").eq("assignment_id", assignmentId);
+    const subIds = (subs ?? []).map((s) => s.id);
+    if (subIds.length) {
+      await supabase.from("answers").delete().in("submission_id", subIds);
+      await supabase.from("submissions").delete().eq("assignment_id", assignmentId);
+    }
+    await supabase.from("questions").delete().eq("assignment_id", assignmentId);
+    const { error } = await supabase.from("assignments").delete().eq("id", assignmentId);
+    if (error) return toast.error(error.message);
+    toast.success("Assignment deleted");
+    navigate({ to: "/classes/$classId", params: { classId: assignment?.class_id ?? "" } });
+  };
+
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newDesc, setNewDesc] = useState("");
+  const [newDueAt, setNewDueAt] = useState("");
+
+  const saveAssignmentDetails = async () => {
+    const updates: any = {};
+    if (newTitle.trim()) updates.title = newTitle.trim();
+    if (newDesc !== undefined) updates.description = newDesc.trim() || null;
+    if (newDueAt !== undefined) updates.due_at = newDueAt || null;
+    const { error } = await supabase.from("assignments").update(updates).eq("id", assignmentId);
+    if (error) return toast.error(error.message);
+    toast.success("Assignment updated");
+    setEditingTitle(false);
+    qc.invalidateQueries({ queryKey: ["assignment", assignmentId] });
+  };
+
   return (
     <div className="space-y-6">
       <Link
@@ -113,10 +151,49 @@ function EditAssignment() {
 
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-semibold">{assignment?.title ?? "…"}</h1>
-          {assignment?.description && <p className="mt-1 text-sm text-muted-foreground">{assignment.description}</p>}
+          {editingTitle ? (
+            <div className="space-y-2">
+              <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Assignment title" />
+              <Textarea value={newDesc} onChange={(e) => setNewDesc(e.target.value)} rows={2} placeholder="Description (optional)" />
+              <Input type="datetime-local" value={newDueAt} onChange={(e) => setNewDueAt(e.target.value)} />
+              <div className="flex gap-2">
+                <Button size="sm" onClick={saveAssignmentDetails}><Save className="mr-1 h-3.5 w-3.5" /> Save</Button>
+                <Button size="sm" variant="outline" onClick={() => setEditingTitle(false)}>Cancel</Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <h1 className="font-display text-3xl font-semibold">{assignment?.title ?? "…"}</h1>
+              {assignment?.description && <p className="mt-1 text-sm text-muted-foreground">{assignment.description}</p>}
+              {assignment?.due_at && (
+                <p className="mt-1 text-xs text-muted-foreground">Due: {new Date(assignment.due_at).toLocaleString()}</p>
+              )}
+            </>
+          )}
         </div>
-        <AIGeneratorDialog assignmentId={assignmentId} onInserted={() => qc.invalidateQueries({ queryKey: ["questions", assignmentId] })} />
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => { setNewTitle(assignment?.title ?? ""); setNewDesc(assignment?.description ?? ""); setNewDueAt(assignment?.due_at ? new Date(assignment.due_at).toISOString().slice(0, 16) : ""); setEditingTitle(true); }}>
+            <Pencil className="mr-1 h-3.5 w-3.5" /> Edit
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete assignment?</AlertDialogTitle>
+                <AlertDialogDescription>This will permanently delete this assignment and all submissions. This cannot be undone.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={deleteAssignment}>Delete</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <AIGeneratorDialog assignmentId={assignmentId} onInserted={() => qc.invalidateQueries({ queryKey: ["questions", assignmentId] })} />
+        </div>
       </div>
 
       <Analytics assignmentId={assignmentId} />

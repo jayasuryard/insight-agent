@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { getGroqClient, GROQ_MODEL } from "@/lib/groq";
 
 async function ensureTeacherOwnsAssignment(userId: string, assignmentId: string) {
   const { data, error } = await supabaseAdmin
@@ -37,72 +38,36 @@ export const generateQuestions = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await ensureTeacherOwnsAssignment(context.userId, data.assignmentId);
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("AI not configured");
+    const groq = getGroqClient();
 
-    const system = `You are an expert curriculum designer. Generate clean, pedagogically sound assessment questions.`;
+    const system = `You are an expert curriculum designer. Generate clean, pedagogically sound assessment questions.
+You MUST respond with a JSON object containing exactly two fields:
+- "mcq": an array of multiple-choice questions, each with "prompt" (string), "options" (array of exactly 4 strings), and "correctIndex" (integer 0-3)
+- "text": an array of short-answer questions, each with "prompt" (string) and "modelAnswer" (string)
+Respond ONLY with the JSON object, no other text.`;
     const user = `Topic: ${data.topic}
 Difficulty: ${data.difficulty}
-Generate exactly ${data.mcqCount} multiple-choice questions (each with 4 options and one correct index 0-3) and ${data.textCount} short-answer questions (each with a model answer). Keep prompts concise and unambiguous.`;
+Generate exactly ${data.mcqCount} multiple-choice questions and ${data.textCount} short-answer questions. Keep prompts concise and unambiguous.`;
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+    try {
+      const chatCompletion = await groq.chat.completions.create({
+        model: GROQ_MODEL,
         messages: [
           { role: "system", content: system },
           { role: "user", content: user },
         ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "emit_questions",
-            description: "Return draft questions",
-            parameters: {
-              type: "object",
-              properties: {
-                mcq: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      prompt: { type: "string" },
-                      options: { type: "array", items: { type: "string" }, minItems: 4, maxItems: 4 },
-                      correctIndex: { type: "integer", minimum: 0, maximum: 3 },
-                    },
-                    required: ["prompt", "options", "correctIndex"],
-                  },
-                },
-                text: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      prompt: { type: "string" },
-                      modelAnswer: { type: "string" },
-                    },
-                    required: ["prompt", "modelAnswer"],
-                  },
-                },
-              },
-              required: ["mcq", "text"],
-            },
-          },
-        }],
-        tool_choice: { type: "function", function: { name: "emit_questions" } },
-      }),
-    });
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+        max_tokens: 4096,
+      });
 
-    if (!resp.ok) {
-      if (resp.status === 429) throw new Error("AI rate limit — try again in a moment.");
-      if (resp.status === 402) throw new Error("AI credits exhausted. Add credits in Settings → Workspace → Usage.");
+      const content = chatCompletion.choices[0]?.message?.content;
+      const parsed = JSON.parse(content ?? "{}") as { mcq: any[]; text: any[] };
+      return { mcq: parsed.mcq ?? [], text: parsed.text ?? [] };
+    } catch (err: any) {
+      if (err?.status === 429) throw new Error("AI rate limit — try again in a moment.");
       throw new Error("AI generation failed");
     }
-    const json = await resp.json();
-    const args = json?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-    const parsed = JSON.parse(args ?? "{}") as { mcq: any[]; text: any[] };
-    return { mcq: parsed.mcq ?? [], text: parsed.text ?? [] };
   });
 
 /** Insert reviewed/approved drafts as questions. */
