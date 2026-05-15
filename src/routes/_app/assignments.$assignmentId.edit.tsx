@@ -111,10 +111,15 @@ function EditAssignment() {
         <ArrowLeft className="h-4 w-4" /> Back to class
       </Link>
 
-      <div>
-        <h1 className="font-display text-3xl font-semibold">{assignment?.title ?? "…"}</h1>
-        {assignment?.description && <p className="mt-1 text-sm text-muted-foreground">{assignment.description}</p>}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-semibold">{assignment?.title ?? "…"}</h1>
+          {assignment?.description && <p className="mt-1 text-sm text-muted-foreground">{assignment.description}</p>}
+        </div>
+        <AIGeneratorDialog assignmentId={assignmentId} onInserted={() => qc.invalidateQueries({ queryKey: ["questions", assignmentId] })} />
       </div>
+
+      <Analytics assignmentId={assignmentId} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-3">
