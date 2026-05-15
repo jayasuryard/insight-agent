@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { LogOut, Sparkles, LayoutDashboard, BookOpen } from "lucide-react";
+import { LogOut, Sparkles, LayoutDashboard, BookOpen, Trophy, Shield } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -29,6 +29,8 @@ function AppLayout() {
   const navItems = [
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { to: "/classes", label: "Classes", icon: BookOpen },
+    ...(role === "student" ? [{ to: "/results", label: "Results", icon: Trophy }] as const : []),
+    ...(role === "admin" ? [{ to: "/admin", label: "Admin", icon: Shield }] as const : []),
   ] as const;
 
   return (
